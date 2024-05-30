@@ -1,0 +1,83 @@
+# Directory of the target
+dirs = builts
+
+# Name of the executable.
+OUTPUT = ./builts/DENTIST.tmp2
+
+# Compiler
+CXX = g++
+
+main = main
+
+# Compiler flags
+CXXFLAGS = -w -O3 -fopenmp  -DEIGEN_NO_DEBUG 
+
+LIB +=  -lz -Wl,-lm -ldl  
+
+PKG_CPPFLAGS = -m64 -DEIGEN_NO_DEBUG -DNDEBUG -fpic -g -O2 -DMKL_ILP64 -I. -DUSEDOUBLE -g3 -fopenmp  -std=gnu++11  -Wno-deprecated -DEIGEN_USE_MKL_ALL
+PKG_LIBS = -static -L$(main) -l$(main) -DUSEDOUBLE -g3 -m64 -Wl,--start-group /usr/lib/x86_64-linux-gnu/libmkl_intel_ilp64.a /usr/lib/x86_64-linux-gnu/libmkl_gnu_thread.a /usr/lib/x86_64-linux-gnu/libmkl_core.a -Wl,--end-group  -lgomp -lpthread -lz -lm -ldl  -DNDEBUG -DEIGEN_USE_MKL_ALL
+
+HDR += DENTIST.h \
+	 invoker.h 
+
+SRC = DENTIST.cpp
+
+OBJ = $(SRC:.cpp=.o)
+
+all : $(OUTPUT)
+
+$(dirs): 
+	@echo "Creating $@ dirs"
+	mkdir -p $@
+
+
+
+
+$(main)/$(main).a :
+	$(MAKE) -C ${main}
+
+
+$(OUTPUT) : | $(dirs)  $(main)/$(main).a
+	$(CXX)  -o $(OUTPUT)   $(OBJ) $(PKG_LIBS) $(CXXFLAGS) $(LIB) 
+
+$(OBJ) : $(HDR)
+
+.cpp.o : 
+	$(CXX) $(CXXFLAGS) $(PKG_CPPFLAGS) -c $*.cpp
+.SUFFIXES : .cpp .c .o $(SUFFIXES)
+
+$(OUTPUT) : $(OBJ)
+
+
+run:
+	export LD_LIBRARY_PATH=/home/uqwche11/utils/R-3.2.2/lib64/R/lib/:$LD_LIBRARY_PATH
+	time /home/uqwche11/30days/simulation.UK10K/multipleSites.dup2/DENTIST.new2  --gwas-summary /home/uqwche11/30days/simulation.UK10K//anaHeight/summaryData/height_UKB_FULLSAMPLE_Julia.txt \
+	--bfile test.chr22 \
+	--out ~/30days/test --thread-num 8  --maf 0.0001 \
+	--degree-of-QC 0.03 --lambda 0.1 \
+	--wind-dist 2000000 \
+	--target   rs3827330 \
+	--extract <(echo rs3827330)
+run2:
+	export LD_LIBRARY_PATH=/home/uqwche11/utils/R-3.2.2/lib64/R/lib/:$LD_LIBRARY_PATH
+	time ./DENTIST --gwas-summary /home/uqwche11/30days/simulation.UK10K//anaHeight/summaryData/height_UKB_FULLSAMPLE_Julia.txt \
+	--bfile test.chr22 \
+	--out ~/30days/test.2 --thread-num 8  --maf 0.0001 \
+	--degree-of-QC 0.03 --lambda 0.1 \
+	--wind-dist 2000000 \
+	--target   rs3827330
+run3:
+	bash -c "time ./DENTIST  --gwas-summary /home/uqwche11/30days/simulation.UK10K//anaHeight/summaryData/height_UKB_FULLSAMPLE_Julia.txt --bfile test.chr22 --out ~/30days/test --thread-num 8  --maf 0.0001 --degree-of-QC 0.03 --lambda 0.1 --wind-dist 2000000 --target   rs3827330 --extract <(echo rs3827330)"
+
+
+
+FORCE:
+
+clean: 
+	rm -f *.o
+	for dir in $(main); do \
+		$(MAKE) -C $$dir clean; \
+	done
+
+
+
